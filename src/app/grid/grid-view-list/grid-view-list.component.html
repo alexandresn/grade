@@ -1,0 +1,131 @@
+<div class="row wrapper" *ngIf="permiteInclusao">
+    <div class="col-sm-5">
+        <a [routerLink]="[rotaEdicao]" class="btn btn-default">Criar {{descricao}}</a>
+    </div>
+</div>
+<div class="row wrapper" *ngIf="filtros && filtros.length > 0">
+    <div class="col-lg-3 col-sm-12">
+        <div class="form-group">
+            <label>Pesquisar Por:</label>
+            <select2 [(ngModel)]="filtroSelecionado" [data]="filtros" [multiple]="false" [placeholder]="'Todos'"></select2>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-12">
+        <div class="form-group">
+            <label>Valor:</label>
+            <div class="input-group">
+                <input type="text" [(ngModel)]="filtroValor" class="form-control" placeholder="Digite o filtro desejado">
+                <div class="input-group-btn">
+                    <button class="btn btn-default" (click)="carregarPagina(1)">Pesquisar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="grid" [aguarde]="atualizaPromise">
+    <ng-content select="filtro-template"></ng-content>
+    <div class="table-responsive" [style.min-height.px]="alturaMinima" id="gridPrincipal">
+        <table class="table table-striped b-t b-light">
+            <thead>
+                <tr>
+                    <th *ngIf="acoes && acoes.length > 0"></th>
+                    <th *ngFor="let coluna of colunasAtivas" (click)="ordernar(getCampoOrdenacao(coluna))" [ngClass]="{'ordenacao': ehCampoOrdenado(coluna)}">
+                        {{coluna.titulo}}
+                        <i class="fa fa-sort-asc" *ngIf="ehCampoOrdenado(coluna) && ordemCrescente"></i>
+                        <i class="fa fa-sort-desc" *ngIf="ehCampoOrdenado(coluna) && !ordemCrescente"></i>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngIf="registros == undefined || registros.length == 0">
+                    <td [attr.colspan]="colunasAtivas.length + ((acoes && acoes.length > 0) ? 1 : 0)" class="text-center">
+                        <span class="wrapper">Nenhum registro encontrato</span>
+                    </td>
+                </tr>
+                <template ngFor let-registro [ngForOf]="registros">
+                    <tr [highlight-class]>
+                        <td *ngIf="acoes && acoes.length > 0" [style.width.px]="'50'">
+
+                            <div *ngIf="verificarExistenciaDeMaisDeUmaAcaoVerdade(registro, acoes)">
+                                <div class="btn-group dropdown">
+                                    <button class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-expanded="true">
+                                    <span class="fa fa-bars"></span>
+                                </button>
+                                    <ul class="dropdown-menu text-left text-sm">
+                                        <template ngFor let-acao [ngForOf]="acoes">
+                                            <li *ngIf="verificarCondicao(registro, acao)">
+                                                <a (click)="executarAcao(acao.nome, registro)"><i class="{{acao.icone}} m-r-sm"></i><span>{{acao.descricao}}</span></a>
+                                            </li>
+                                            <li *ngIf="acao.template">
+                                                <a (click)="executarAcao(acao.nome, registro)">
+                                                    <td-template [template]="acao.template" [campo]="acao.descricao" [modelo]="registro"></td-template>
+                                                </a>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div *ngIf="!verificarExistenciaDeMaisDeUmaAcaoVerdade(registro, acoes)">
+                                <template ngFor let-acao [ngForOf]="acoes">
+                                    <div *ngIf="verificarCondicao(registro, acao)">
+                                        <button style="width: 26px;" type="button" data-toggle="tooltip" title="{{acao.descricao}}" (click)="executarAcao(acao.nome, registro)"><i class="{{acao.icone}} m-r-sm"></i></button>
+                                    </div>
+                                    <div *ngIf="acao.template">
+                                        <a (click)="executarAcao(acao.nome, registro)">
+                                            <td-template [template]="acao.template" [campo]="acao.descricao" [modelo]="registro"></td-template>
+                                        </a>
+                                    </div>
+                                </template>
+                            </div>
+                        </td>
+                        <template ngFor let-coluna [ngForOf]="colunasAtivas">
+                            <td [ngSwitch]="getColunaTipo(coluna)" [style.width.px]="coluna.width" [class]="coluna.css">
+                                <template [ngSwitchCase]="'HTML'">
+                                    <td-template [template]="coluna.template" [campo]="byString(registro, coluna.campo)" [modelo]="registro"></td-template>
+                                </template>
+                                <template [ngSwitchCase]="'TEMPLATE'">
+                                    <template [ngTemplateOutlet]="coluna.itemTmpl" [ngOutletContext]="{item: registro}"></template>
+                                </template>
+                                <template ngSwitchDefault>
+                                    <a *ngIf="coluna.link" [routerLink]="[coluna.link, registro.Id]" class="btn-link">{{byString(registro, coluna)}}</a>
+                                    <!--<span *ngIf="!coluna.link">{{byString(registro, coluna)}}</span>-->
+                                    <span #tdCelulaExibicao>
+                                    <span *ngIf="!coluna.link">{{byString(registro, coluna)}}</span>{{celulaExibicaoCriada(byString(registro,
+                                    coluna), coluna.campo, registro, tdCelulaExibicao)}}
+                                    </span>
+                                </template>
+                            </td>
+                        </template>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+</div>
+<footer class="panel-footer">
+    <div *ngIf="registrosTotais > 0" class="row">
+        <div class="col-sm-3">
+            <small class="text-muted inline m-t-sm m-b-sm">exibindo {{primeiroRegistroPagina}}-{{ultimoRegistroPagina}} de {{registrosTotais}} items</small>
+        </div>
+        <div class="col-sm-6 text-center">
+            <ul class="pagination">
+                <li *ngIf="paginacao.exibirEsquerda"><a (click)="voltarPaginacao()"><i class="fa fa-chevron-left"></i></a></li>
+                <li *ngFor="let pagina of paginacao.paginas" [class.active]="pagina.ativa"><a (click)="carregarPagina(pagina.numero, true)">{{pagina.numero}}</a></li>
+                <li *ngIf="paginacao.exibirDireita"><a (click)="avancarPaginacao()"><i class="fa fa-chevron-right"></i></a></li>
+            </ul>
+        </div>
+        <div class="col-sm-3">
+            <div class="input-group pull-right" style="width:110px">
+                <span class="input-group-addon" title="Rows per page"><i class="glyphicon glyphicon-th-list"></i></span>
+                <select class="form-control" style="width:auto;" [ngModel]="registrosPorPagina" (ngModelChange)="mudarTamanhoPagina($event)">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+            </div>
+        </div>
+    </div>
+</footer>

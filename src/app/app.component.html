@@ -1,3 +1,22 @@
 <h1>
-  {{title}}
+    {{title}}
 </h1>
+<div class="wrapper-md">
+    <div class="panel panel-default" id="grid">
+        <div class="panel-heading b-b font-bold">
+            Listagem
+        </div>
+		<grade [registros]="registros" [descricao]="'Reunião'" (carregaPagina)="carregaPagina($event)">
+			<filtros>
+				<filtro id="Descricao" text="Descrição"></filtro>
+			</filtros>
+			<colunas autoSize="true">
+				<coluna-texto titulo="Descrição" campo="Descricao"></coluna-texto>
+				<coluna-data titulo="Data da Deliberação" campo="Data"></coluna-data>
+			</colunas>
+			<acoes>
+				<acao nome="editar" descricao="Editar" icone="fa fa-edit"></acao>
+			</acoes>
+		</grade>
+    </div>
+</div>
